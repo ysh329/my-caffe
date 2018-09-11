@@ -178,7 +178,7 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   caffe_copy(x_norm_.count(), top_data,
       x_norm_.mutable_cpu_data());
 
-  //*
+  /*
   printf("num:%d\n", num);
   printf("spatial_dim:%d\n", spatial_dim);
   const Dtype *output = x_norm_.cpu_data();
@@ -189,7 +189,7 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     printf("%.8lf\n", output[i]);
   }
   exit(0);
-  //*/
+  */
 
 
 }
