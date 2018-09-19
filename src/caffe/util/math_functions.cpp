@@ -199,6 +199,14 @@ void caffe_sqr<double>(const int n, const double* a, double* y) {
 template <>
 void caffe_sqrt<float>(const int n, const float* a, float* y) {
   vsSqrt(n, a, y);
+  /*
+  const float aa[10] = {0.0, 1.0, 1e-5, -1.0};
+  float *t = (float*)calloc(10, sizeof(float));
+  vsSqrt(4, aa, t);
+  for(int i=0; i<4; i++)
+    printf("idx:%d in:%.8f out:%.44f\n", i, aa[i], *(t+i));
+  exit(0);
+  */
 }
 
 template <>
