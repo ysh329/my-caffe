@@ -91,7 +91,11 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   int num = bottom[0]->shape(0);
   int spatial_dim = bottom[0]->count()/(bottom[0]->shape(0)*channels_);
 
+
+  Dtype scale_factor_tmp = 0.0;
   /*
+  printf("============= batchnorm input ============\n");
+  printf("eps_:%.8f\n", eps_);
   printf("num:%d\n", num);
   printf("spatial_dim:%d\n", spatial_dim);
   printf("bottom.size():%d\n", (int)bottom.size());
@@ -102,7 +106,7 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     //printf("input[%d]:%lf\n", i, input[i]);
     printf("%.8lf\n", input[i]);
   }
-  exit(0);
+  //exit(0);
   */
 
   if (bottom[0] != top[0]) {
@@ -113,10 +117,20 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     // use the stored mean/variance estimates.
     const Dtype scale_factor = this->blobs_[2]->cpu_data()[0] == 0 ?
         0 : 1 / this->blobs_[2]->cpu_data()[0];
+    scale_factor_tmp = scale_factor;
     caffe_cpu_scale(variance_.count(), scale_factor,
         this->blobs_[0]->cpu_data(), mean_.mutable_cpu_data());
     caffe_cpu_scale(variance_.count(), scale_factor,
         this->blobs_[1]->cpu_data(), variance_.mutable_cpu_data());
+    {
+      printf("-------- varxscale_factor---------\n");
+      const int cc = bottom[0]->channels();
+      const Dtype* varr = variance_.cpu_data();
+      for(int i=0; i<cc; i++) {
+        printf("var[%d]:%.20f\n", i, varr[i]);
+      }
+    }
+
   } else {
     // compute mean
     caffe_cpu_gemv<Dtype>(CblasNoTrans, channels_ * num, spatial_dim,
@@ -162,8 +176,31 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 
   // normalize variance
   caffe_add_scalar(variance_.count(), eps_, variance_.mutable_cpu_data());
+  {
+    printf("-------- eat var scaled ---------\n");
+    const int cc = bottom[0]->channels();
+    const Dtype* varr = variance_.mutable_cpu_data();
+    printf("eps_:%.8f\n", eps_);
+    printf("eps_:%.20f\n", eps_);
+    printf("eps_:%.44f\n", eps_);
+    printf("typeid(eps_).name():%s\n", typeid(eps_).name());
+    //double bb=1.0;
+    //std::cout << "b:" << typeid(bb).name() << std::endl;
+    //std::cout << "sizeof b:" << sizeof bb << std::endl;
+    for(int i=0; i<cc; i++) {
+      printf("var[%d]:%.20f\n", i, varr[i]);
+    }
+  }
   caffe_sqrt(variance_.count(), variance_.cpu_data(),
              variance_.mutable_cpu_data());
+  {
+    printf("-------- var normalized ---------\n");
+    const int cc = bottom[0]->channels();
+    const Dtype* varr = variance_.mutable_cpu_data();
+    for(int i=0; i<cc; i++) {
+      printf("var[%d]:%.20f\n", i, varr[i]);
+    }
+  }
 
   // replicate variance to input size
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, num, channels_, 1, 1,
@@ -178,20 +215,41 @@ void BatchNormLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   caffe_copy(x_norm_.count(), top_data,
       x_norm_.mutable_cpu_data());
 
-  /*
+  /* TODO TODO TODO TODO TODO
+  printf("========== batch_norm output ========\n");
   printf("num:%d\n", num);
-  printf("spatial_dim:%d\n", spatial_dim);
+
+  const Dtype *input = bottom[0]->cpu_data();
+  const int n = 1;
+  const int c = bottom[0]->channels();
+  const int h = bottom[0]->height();
+  const int w = bottom[0]->width();
+
+  const Dtype *bn_scale1 = this->blobs_[0]->cpu_data();
+  const Dtype *bn_scale2 = this->blobs_[1]->cpu_data();
+
   const Dtype *output = x_norm_.cpu_data();
-  const int nchw = x_norm_.channels() * x_norm_.height() * x_norm_.width();
-  printf("nchw:%d\n", nchw);
-  for(int i=0; i<nchw; i++) {
+  const Dtype *mean = mean_.cpu_data();
+  const Dtype *var = variance_.cpu_data();
+  const Dtype *varrr = variance_.mutable_cpu_data();
+  int hxw = h * w;
+  for(int i=0; i<n; i++) 
+    for(int j=0; j<c; j++) 
+      for(int k=0; k<hxw; k++) 
+      {    
+        //output[i*c*hxw+j*hxw+k] = (input[i*c*hxw+j*hxw+k]-mean[j])/(var[j]);
+        printf("idx:%d in:%.8f bn_s1:%.8f bn_s2:%.20f mean:%.8f var:%.20f out:%.20f eps:%.20f scale:%.2f\n",
+               i*c*hxw+j*hxw+k, input[i*c*hxw+j*hxw+k], bn_scale1[j], bn_scale2[j],
+               mean[j], var[j],
+               output[i*c*hxw+j*hxw+k], eps_, scale_factor_tmp);
+      }
+
+  //for(int i=0; i<nchw; i++) {
     //printf("output[%d]:%lf\n", i, output[i]);
-    printf("%.8lf\n", output[i]);
-  }
-  exit(0);
+    ;//printf("%.8lf\n", output[i]);
+  //}
+  //exit(0);
   */
-
-
 }
 
 template <typename Dtype>
